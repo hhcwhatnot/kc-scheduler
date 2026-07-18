@@ -1,0 +1,691 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KC Dynamic Scheduler</title>
+<style>
+  :root {
+    --bg: #faf8f3;
+    --card: #ffffff;
+    --ink: #26211a;
+    --muted: #837a6c;
+    --line: #e6e0d4;
+    --accent: #b45b04;
+    --accent-soft: #f7ead8;
+    --accent-ink: #7c3d00;
+    --locked-bg: #efece4;
+    --locked-ink: #a89f8f;
+    --today: #3d7a33;
+    --danger: #b3261e;
+    --danger-soft: #f9e5e3;
+    --am: #dbeafe;   --am-ink: #1e50a0;
+    --mid: #fdeec0;  --mid-ink: #8a5300;
+    --pm: #e4e2fb;   --pm-ink: #4638a8;
+    --inv: #ddf2dc;  --inv-ink: #226b28;
+    --off: #eceae4;  --off-ink: #837a6c;
+    --radius: 12px;
+    --shadow: 0 1px 6px rgba(38,33,26,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171410; --card: #211d16; --ink: #ece5d8; --muted: #99907f;
+      --line: #353026; --accent: #e0913a; --accent-soft: #3a2a12; --accent-ink: #f0b269;
+      --locked-bg: #1d1a14; --locked-ink: #6d6557; --today: #6cbf5e;
+      --danger: #ea8078; --danger-soft: #3c211e;
+      --am: #1d2c44; --am-ink: #8ab2f0; --mid: #3a2c12; --mid-ink: #eebf6a;
+      --pm: #272244; --pm-ink: #a79bf0; --inv: #1c2f1c; --inv-ink: #84cc8a;
+      --off: #26231c; --off-ink: #99907f;
+      --shadow: 0 1px 6px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171410; --card: #211d16; --ink: #ece5d8; --muted: #99907f;
+    --line: #353026; --accent: #e0913a; --accent-soft: #3a2a12; --accent-ink: #f0b269;
+    --locked-bg: #1d1a14; --locked-ink: #6d6557; --today: #6cbf5e;
+    --danger: #ea8078; --danger-soft: #3c211e;
+    --am: #1d2c44; --am-ink: #8ab2f0; --mid: #3a2c12; --mid-ink: #eebf6a;
+    --pm: #272244; --pm-ink: #a79bf0; --inv: #1c2f1c; --inv-ink: #84cc8a;
+    --off: #26231c; --off-ink: #99907f;
+    --shadow: 0 1px 6px rgba(0,0,0,.4);
+  }
+  :root[data-theme="light"] {
+    --bg: #faf8f3; --card: #ffffff; --ink: #26211a; --muted: #837a6c;
+    --line: #e6e0d4; --accent: #b45b04; --accent-soft: #f7ead8; --accent-ink: #7c3d00;
+    --locked-bg: #efece4; --locked-ink: #a89f8f; --today: #3d7a33;
+    --danger: #b3261e; --danger-soft: #f9e5e3;
+    --am: #dbeafe; --am-ink: #1e50a0; --mid: #fdeec0; --mid-ink: #8a5300;
+    --pm: #e4e2fb; --pm-ink: #4638a8; --inv: #ddf2dc; --inv-ink: #226b28;
+    --off: #eceae4; --off-ink: #837a6c;
+    --shadow: 0 1px 6px rgba(38,33,26,.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    padding-bottom: 74px;
+    font-size: 14.5px;
+  }
+  button { font-family: inherit; }
+  input, select, textarea {
+    font-family: inherit; font-size: 16px;
+    width: 100%; padding: 10px 11px;
+    border: 1.5px solid var(--line); border-radius: 9px;
+    background: var(--card); color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 11px 14px; background: var(--card); border-bottom: 1px solid var(--line);
+  }
+  .brand { min-width: 0; }
+  .brand h1 { font-size: 16.5px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; }
+  .brand .sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+  .btn {
+    border: none; cursor: pointer; font-weight: 700; font-size: 14px;
+    padding: 9px 14px; min-height: 42px; border-radius: 10px;
+    background: var(--accent-soft); color: var(--accent-ink);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--muted); }
+  .btn.danger { background: var(--danger-soft); color: var(--danger); }
+  .btn.small { min-height: 34px; padding: 5px 11px; font-size: 12.5px; border-radius: 8px; }
+  .btn:focus-visible, .tabbar button:focus-visible, .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .adminbanner {
+    display: none; background: var(--accent); color: #fff; text-align: center;
+    font-size: 12.5px; font-weight: 700; padding: 6px 10px;
+  }
+  .adminbanner.show { display: block; }
+
+  .view { display: none; padding: 14px; max-width: 1080px; margin: 0 auto; }
+  .view.show { display: block; }
+  .sectionhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .sectionhead h2 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+  .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; line-height: 1.45; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 13px; margin-bottom: 12px; }
+  .card h3 { font-size: 14.5px; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
+  .lab { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0 4px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  @media (max-width: 460px) { .row2 { grid-template-columns: 1fr; } }
+
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    display: flex; background: var(--card); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tabbar button {
+    flex: 1; border: none; background: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 8px 2px 7px; font-size: 10.5px; font-weight: 700; color: var(--muted);
+  }
+  .tabbar button .ico { font-size: 20px; line-height: 1; }
+  .tabbar button.active { color: var(--accent); }
+
+  .monthnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .monthnav h2 { font-size: 17px; font-weight: 800; text-align: center; flex: 1; }
+
+  .gridwrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  table.sched { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .sched th, .sched td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .sched thead th {
+    font-size: 10.5px; color: var(--muted); font-weight: 700; text-align: center;
+    padding: 5px 2px 4px; min-width: 46px; background: var(--card);
+    position: sticky; top: 0;
+  }
+  .sched thead th .dow { display: block; font-weight: 600; letter-spacing: .04em; }
+  .sched thead th.today { color: var(--today); }
+  .sched th.namecol, .sched td.namecol {
+    position: sticky; left: 0; background: var(--card); z-index: 2;
+    min-width: 108px; max-width: 130px; text-align: left;
+    padding: 7px 9px; font-weight: 700; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-right: 2px solid var(--line);
+  }
+  .sched td.namecol .role { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+  .cell {
+    width: 100%; min-height: 44px; border: none; cursor: pointer;
+    background: transparent; color: inherit; font-size: 10.5px; font-weight: 700;
+    padding: 2px; display: flex; align-items: center; justify-content: center;
+  }
+  .cell .chip { border-radius: 6px; padding: 3px 5px; width: 100%; min-height: 26px; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.15; }
+  td.locked { background: var(--locked-bg); }
+  td.locked .cell { cursor: not-allowed; color: var(--locked-ink); }
+  td.locked.adminmode .cell { cursor: pointer; }
+  td.todaycol { box-shadow: inset 0 0 0 1.5px var(--today); }
+  .legend { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 0; }
+  .legend .lchip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
+
+  .emp { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 9px; overflow: hidden; }
+  .emp .head { display: flex; align-items: center; gap: 11px; padding: 12px 13px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; color: inherit; }
+  .avatar { width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
+  .emp .who { flex: 1; min-width: 0; }
+  .emp .who .nm { font-weight: 800; font-size: 14.5px; }
+  .emp .who .rl { font-size: 12px; color: var(--muted); }
+  .emp .detail { display: none; border-top: 1px solid var(--line); padding: 12px 13px; }
+  .emp.openx .detail { display: block; }
+  .pill { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 3px 9px; }
+  .pill.active { background: var(--inv); color: var(--inv-ink); }
+  .pill.inactive { background: var(--off); color: var(--off-ink); }
+  .note { border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 8px 8px 0; padding: 8px 10px; margin-bottom: 7px; font-size: 13px; }
+  .note .meta { font-size: 11px; color: var(--muted); margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+  .note .meta .ntype { font-weight: 800; }
+  .note .meta .ntype.corr { color: var(--danger); }
+
+  .overlay { position: fixed; inset: 0; z-index: 50; background: rgba(23,20,16,.55); display: none; align-items: flex-end; justify-content: center; }
+  .overlay.show { display: flex; }
+  .sheet {
+    background: var(--card); color: var(--ink); border-radius: 16px 16px 0 0;
+    width: 100%; max-width: 460px; max-height: 84vh; overflow-y: auto;
+    padding: 16px 15px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 640px) { .overlay { align-items: center; padding: 20px; } .sheet { border-radius: 16px; } }
+  .sheet h3 { font-size: 16px; margin-bottom: 2px; }
+  .sheet .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+  .optlist { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+  .opt { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--card); color: inherit; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 14px; text-align: left; }
+  .opt .sw { width: 26px; height: 26px; flex: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+  .opt .t { font-weight: 700; }
+  .opt .times { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .pinrow input { text-align: center; font-size: 22px; letter-spacing: 8px; font-variant-numeric: tabular-nums; }
+
+  .toast {
+    position: fixed; bottom: 84px; left: 50%; z-index: 60;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--ink); color: var(--bg); padding: 10px 17px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; opacity: 0; transition: all .22s ease; pointer-events: none;
+    max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  .evtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .evtable th, .evtable td { padding: 8px 9px; border-bottom: 1px solid var(--line); text-align: left; font-variant-numeric: tabular-nums; }
+  .evtable th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+  @media print {
+    body { padding: 0; background: #fff; color: #000; }
+    .topbar, .tabbar, .adminbanner, .noprint { display: none !important; }
+    .view { display: none; }
+    #view-empview { display: block; }
+    .card { box-shadow: none; border-color: #bbb; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>KC Dynamic Scheduler</h1>
+    <div class="sub">Warehouse crew · days 1–14 open</div>
+  </div>
+  <button class="btn" id="adminBtn">🔒 Admin</button>
+</div>
+<div class="adminbanner" id="adminBanner">🔓 ADMIN — back half of the month, roster pay &amp; coaching unlocked</div>
+
+<!-- SCHEDULE -->
+<div class="view show" id="view-sched">
+  <div class="monthnav">
+    <button class="btn" id="prevM" aria-label="Previous month">‹</button>
+    <h2 id="mLabel">Month</h2>
+    <button class="btn" id="nextM" aria-label="Next month">›</button>
+  </div>
+  <div class="hint">Tap a cell, pick a shift. Grey days (15+) are admin-only, same as the workbook's shaded weeks.</div>
+  <div class="gridwrap" id="gridwrap"></div>
+  <div class="legend" id="legend"></div>
+  <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+    <button class="btn small" id="toEmpView">📄 Hand-out view</button>
+    <button class="btn small" id="csvSched">⬇ Schedule CSV</button>
+  </div>
+</div>
+
+<!-- ROSTER -->
+<div class="view" id="view-roster">
+  <div class="sectionhead"><h2>Roster</h2><span class="pill active" id="rosterCount"></span></div>
+  <div class="hint" id="rosterHint">Names and roles are visible to everyone. Pay, hire dates, and coaching records show in Admin mode only.</div>
+  <div id="empList"></div>
+  <div class="card" id="addEmpCard" style="display:none;">
+    <h3>＋ Add crew member</h3>
+    <div class="row2">
+      <div><span class="lab">Name</span><input id="npName" maxlength="40" placeholder="e.g. Jordan Lee"></div>
+      <div><span class="lab">Role / zone</span><input id="npRole" maxlength="40" placeholder="e.g. Picker — Zone A"></div>
+    </div>
+    <div class="row2">
+      <div><span class="lab">Pay rate ($/hr)</span><input id="npRate" type="number" step="0.25" min="0" placeholder="18.50"></div>
+      <div><span class="lab">Date of hire</span><input id="npHired" type="date"></div>
+    </div>
+    <div class="actions"><button class="btn primary" id="npAdd">＋ Add to roster</button></div>
+  </div>
+</div>
+
+<!-- SHIFTS -->
+<div class="view" id="view-shifts">
+  <div class="sectionhead"><h2>Shift menu</h2></div>
+  <div class="hint">Feeds every pull-down on the schedule — add or rename here and the grid updates, exactly like the workbook's Shift Menu tab. OFF is built in.</div>
+  <div id="shiftList"></div>
+  <div class="card" id="addShiftCard" style="display:none;">
+    <h3>＋ Add shift</h3>
+    <div><span class="lab">Label (appears in the picker)</span><input id="nsLabel" maxlength="24" placeholder="e.g. AM 6:00–2:30"></div>
+    <div class="row2">
+      <div><span class="lab">Start</span><input id="nsStart" type="time"></div>
+      <div><span class="lab">End</span><input id="nsEnd" type="time"></div>
+    </div>
+    <div><span class="lab">Notes</span><input id="nsNotes" maxlength="60" placeholder="e.g. Opening / receiving"></div>
+    <div class="actions"><button class="btn primary" id="nsAdd">＋ Add shift</button></div>
+  </div>
+</div>
+
+<!-- COACHING -->
+<div class="view" id="view-coach">
+  <div class="sectionhead"><h2>Coaching log</h2></div>
+  <div class="hint" id="coachHint">Admin only — one entry per conversation, mirroring the workbook's Coaching Log tab.</div>
+  <div id="coachLocked" class="card"><p style="margin:0;">🔒 Unlock Admin mode to view or add coaching records.</p></div>
+  <div id="coachBody" style="display:none;">
+    <div class="card">
+      <h3>＋ New entry</h3>
+      <div class="row2">
+        <div><span class="lab">Date</span><input id="ncDate" type="date"></div>
+        <div><span class="lab">Employee</span><select id="ncEmp"></select></div>
+      </div>
+      <div><span class="lab">Type</span><select id="ncType"><option>Coaching</option><option>Corrective action</option></select></div>
+      <div><span class="lab">What happened</span><textarea id="ncWhat" rows="2" maxlength="240"></textarea></div>
+      <div><span class="lab">Plan / follow-up</span><textarea id="ncPlan" rows="2" maxlength="240"></textarea></div>
+      <div class="actions"><button class="btn primary" id="ncAdd">Save entry</button></div>
+    </div>
+    <div id="coachList"></div>
+  </div>
+</div>
+
+<!-- EMPLOYEE VIEW -->
+<div class="view" id="view-empview">
+  <div class="sectionhead"><h2 id="evTitle">Hand-out — weeks 1 &amp; 2</h2></div>
+  <div class="hint noprint">The only thing the crew should get: days 1–14, no pay, no coaching. Print or save as PDF.</div>
+  <div class="card"><div style="overflow-x:auto;"><table class="evtable" id="evTable"></table></div></div>
+  <div class="actions noprint"><button class="btn" id="backSched">‹ Back to schedule</button><button class="btn primary" id="printBtn">🖨 Print / PDF</button></div>
+</div>
+
+<!-- MORE -->
+<div class="view" id="view-more">
+  <div class="card">
+    <h3>💾 Backup &amp; workbook sync</h3>
+    <p>Data lives on this device. <b>Export JSON</b> is the full backup; the <b>CSV exports</b> match the Excel workbook's tabs (Roster, Shift Menu, Schedule, Coaching Log) so you can paste updates into <i>KC-Dynamic-Scheduler-Workbook.xlsx</i>.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn primary" id="expJson">⬇ Export JSON</button>
+      <button class="btn" id="impJson">⬆ Import JSON</button>
+      <button class="btn" id="csvRoster">⬇ Roster CSV</button>
+      <button class="btn" id="csvShifts">⬇ Shifts CSV</button>
+      <button class="btn" id="csvCoach">⬇ Coaching CSV</button>
+    </div>
+    <input type="file" id="impFile" accept=".json,application/json" style="display:none;">
+  </div>
+  <div class="card">
+    <h3>🔑 Admin PIN</h3>
+    <p>Default <b>1234</b> — change it. Convenience lock, not bank-grade security.</p>
+    <button class="btn" id="chgPin">Change PIN (admin)</button>
+  </div>
+  <div class="card">
+    <h3>📱 Home screen</h3>
+    <p><b>iPhone:</b> Safari → Share → “Add to Home Screen”. <b>Android:</b> Chrome → ⋮ → “Add to Home screen”.</p>
+  </div>
+  <div class="card">
+    <h3>🗑 Reset</h3>
+    <p>Erases everything on this device. Export a JSON backup first.</p>
+    <button class="btn danger" id="resetBtn">Reset this device (admin)</button>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="Sections">
+  <button data-v="sched" class="active"><span class="ico">📅</span>Schedule</button>
+  <button data-v="roster"><span class="ico">👷</span>Roster</button>
+  <button data-v="shifts"><span class="ico">🕒</span>Shifts</button>
+  <button data-v="coach"><span class="ico">📋</span>Coaching</button>
+  <button data-v="more"><span class="ico">⋯</span>More</button>
+</nav>
+
+<!-- Shift picker sheet -->
+<div class="overlay" id="pickOverlay">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h3 id="pickTitle">Assign shift</h3>
+    <div class="sub" id="pickSub"></div>
+    <div class="optlist" id="pickList"></div>
+    <div class="actions"><button class="btn ghost" id="pickClose">Close</button></div>
+  </div>
+</div>
+
+<!-- PIN sheet -->
+<div class="overlay" id="pinOverlay">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h3 id="pinTitle">Enter admin PIN</h3>
+    <div class="sub" id="pinSub">4 digits.</div>
+    <div class="pinrow"><input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"></div>
+    <div class="actions">
+      <button class="btn ghost" id="pinCancel">Cancel</button>
+      <button class="btn primary" id="pinOk">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+  const KEY = "kc-dynamic-scheduler-v1";
+  const OPEN_DAYS = 14;
+  const uid = () => Math.random().toString(36).slice(2, 10);
+
+  const DEFAULTS = {
+    pin: "1234",
+    roster: [
+      { id: "e1", name: "Jordan Lee", role: "Picker — Zone A", rate: 18.5, hired: "2025-03-02", status: "Active", example: true },
+      { id: "e2", name: "Sam Rivera", role: "Outbound / Shipping", rate: 19.25, hired: "2024-11-18", status: "Active", example: true },
+      { id: "e3", name: "Alex Kim", role: "Receiving Lead", rate: 22, hired: "2023-06-09", status: "Active", example: true },
+    ],
+    shifts: [
+      { id: "s1", label: "AM 6:00–2:30", start: "06:00", end: "14:30", notes: "Opening / receiving", hue: "am" },
+      { id: "s2", label: "MID 10:00–6:30", start: "10:00", end: "18:30", notes: "Peak coverage", hue: "mid" },
+      { id: "s3", label: "PM 2:00–10:30", start: "14:00", end: "22:30", notes: "Closing / outbound", hue: "pm" },
+      { id: "s4", label: "INVENTORY", start: "06:00", end: "14:30", notes: "Cycle count day", hue: "inv" },
+    ],
+    sched: {},   // { "2026-07": { empId: { "3": "AM 6:00–2:30" } } }
+    coach: [],   // { id, date, empId, type, what, plan }
+  };
+
+  let S;
+  try { S = Object.assign(structuredClone(DEFAULTS), JSON.parse(localStorage.getItem(KEY) || "{}")); }
+  catch { S = structuredClone(DEFAULTS); }
+  const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+  let admin = false;
+  let cur = new Date(); cur = { y: cur.getFullYear(), m: cur.getMonth() }; // m 0-based
+  const monthKey = () => `${cur.y}-${String(cur.m + 1).padStart(2, "0")}`;
+  const monthName = () => new Date(cur.y, cur.m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const daysInMonth = () => new Date(cur.y, cur.m + 1, 0).getDate();
+  const todayISO = () => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() }; };
+
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200); };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const HUES = ["am", "mid", "pm", "inv"];
+  const hueFor = (label) => {
+    const sh = S.shifts.find((x) => x.label === label);
+    if (!sh) return label === "OFF" ? "off" : "off";
+    return sh.hue || HUES[S.shifts.indexOf(sh) % HUES.length];
+  };
+
+  // ---- Admin ----
+  let pinMode = "unlock"; // unlock | change | reset
+  function askPin(mode, title) { pinMode = mode; $("pinTitle").textContent = title || "Enter admin PIN"; $("pinSub").textContent = "4 digits."; $("pinInput").value = ""; $("pinOverlay").classList.add("show"); $("pinInput").focus(); }
+  $("adminBtn").onclick = () => {
+    if (admin) { admin = false; syncAdmin(); toast("Admin locked"); }
+    else askPin("unlock", "Enter admin PIN");
+  };
+  $("pinCancel").onclick = () => $("pinOverlay").classList.remove("show");
+  $("pinOk").onclick = () => {
+    const v = $("pinInput").value;
+    if (pinMode === "unlock" || pinMode === "reset") {
+      if (v !== S.pin) { $("pinSub").textContent = "Wrong PIN."; return; }
+      $("pinOverlay").classList.remove("show");
+      if (pinMode === "reset") { localStorage.removeItem(KEY); location.reload(); return; }
+      admin = true; syncAdmin(); toast("Admin unlocked");
+    } else if (pinMode === "change") {
+      if (!/^\d{4}$/.test(v)) { $("pinSub").textContent = "PIN must be 4 digits."; return; }
+      S.pin = v; save(); $("pinOverlay").classList.remove("show"); toast("PIN changed");
+    }
+  };
+  $("pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pinOk").click(); });
+  $("chgPin").onclick = () => { if (!admin) return toast("Unlock Admin first"); askPin("change", "New 4-digit PIN"); };
+  $("resetBtn").onclick = () => askPin("reset", "Enter PIN to erase this device");
+
+  function syncAdmin() {
+    $("adminBtn").textContent = admin ? "🔓 Admin ON" : "🔒 Admin";
+    $("adminBanner").classList.toggle("show", admin);
+    $("addEmpCard").style.display = admin ? "" : "none";
+    $("addShiftCard").style.display = admin ? "" : "none";
+    $("coachLocked").style.display = admin ? "none" : "";
+    $("coachBody").style.display = admin ? "" : "none";
+    renderAll();
+  }
+
+  // ---- Tabs ----
+  document.querySelectorAll(".tabbar button").forEach((b) => {
+    b.onclick = () => {
+      document.querySelectorAll(".tabbar button").forEach((x) => x.classList.toggle("active", x === b));
+      document.querySelectorAll(".view").forEach((v) => v.classList.remove("show"));
+      $("view-" + b.dataset.v).classList.add("show");
+    };
+  });
+  $("toEmpView").onclick = () => { document.querySelectorAll(".view").forEach((v) => v.classList.remove("show")); $("view-empview").classList.add("show"); renderEmpView(); };
+  $("backSched").onclick = () => { document.querySelectorAll(".view").forEach((v) => v.classList.remove("show")); $("view-sched").classList.add("show"); };
+  $("printBtn").onclick = () => window.print();
+
+  // ---- Schedule ----
+  $("prevM").onclick = () => { cur.m--; if (cur.m < 0) { cur.m = 11; cur.y--; } renderSched(); };
+  $("nextM").onclick = () => { cur.m++; if (cur.m > 11) { cur.m = 0; cur.y++; } renderSched(); };
+
+  const activeRoster = () => S.roster.filter((e) => e.status === "Active");
+  const cellVal = (empId, d) => (S.sched[monthKey()] || {})[empId]?.[d] || "";
+
+  function renderSched() {
+    $("mLabel").textContent = monthName();
+    const days = daysInMonth();
+    const t = todayISO();
+    const isThisMonth = t.y === cur.y && t.m === cur.m;
+    const roster = activeRoster();
+    let h = '<table class="sched"><thead><tr><th class="namecol">Crew</th>';
+    for (let d = 1; d <= days; d++) {
+      const dow = new Date(cur.y, cur.m, d).toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2);
+      h += `<th class="${isThisMonth && t.d === d ? "today" : ""}"><span class="dow">${dow}</span>${d}</th>`;
+    }
+    h += "</tr></thead><tbody>";
+    if (!roster.length) h += `<tr><td class="namecol">—</td><td colspan="${days}" style="padding:12px;color:var(--muted);">Roster is empty — add crew on the Roster tab.</td></tr>`;
+    for (const e of roster) {
+      h += `<tr><td class="namecol">${esc(e.name)}<span class="role">${esc(e.role)}</span></td>`;
+      for (let d = 1; d <= days; d++) {
+        const locked = d > OPEN_DAYS;
+        const v = cellVal(e.id, d);
+        const hue = v ? hueFor(v) : "";
+        const chip = v ? `<span class="chip" style="background:var(--${hue});color:var(--${hue}-ink);">${esc(v)}</span>` : "";
+        const cls = [locked ? "locked" : "", locked && admin ? "adminmode" : "", isThisMonth && t.d === d ? "todaycol" : ""].join(" ");
+        h += `<td class="${cls}"><button class="cell" data-e="${e.id}" data-d="${d}" ${locked && !admin ? 'aria-disabled="true"' : ""}>${chip || (locked && !admin ? "🔒" : "")}</button></td>`;
+      }
+      h += "</tr>";
+    }
+    h += "</tbody></table>";
+    $("gridwrap").innerHTML = h;
+    $("gridwrap").querySelectorAll(".cell").forEach((c) => { c.onclick = () => openPicker(c.dataset.e, parseInt(c.dataset.d, 10)); });
+    $("legend").innerHTML =
+      S.shifts.map((s) => { const hu = hueFor(s.label); return `<span class="lchip" style="background:var(--${hu});color:var(--${hu}-ink);">${esc(s.label)}</span>`; }).join("") +
+      `<span class="lchip" style="background:var(--off);color:var(--off-ink);">OFF</span>` +
+      `<span class="lchip" style="background:var(--locked-bg);color:var(--locked-ink);">🔒 15+ admin</span>`;
+  }
+
+  function openPicker(empId, d) {
+    const locked = d > OPEN_DAYS;
+    if (locked && !admin) return toast("Days 15+ are admin-only");
+    const emp = S.roster.find((x) => x.id === empId);
+    $("pickTitle").textContent = `${emp?.name ?? "?"} — ${monthName().split(" ")[0]} ${d}`;
+    $("pickSub").textContent = locked ? "⚡ Editing a locked day as Admin" : "Pick a shift, OFF, or clear.";
+    const cs = cellVal(empId, d);
+    const mk = (label, times, hu) => `<button class="opt" data-v="${esc(label)}"><span class="sw" style="background:var(--${hu});color:var(--${hu}-ink);">${cs === label ? "✓" : ""}</span><span class="t">${esc(label)}</span><span class="times">${esc(times)}</span></button>`;
+    $("pickList").innerHTML =
+      S.shifts.map((s) => mk(s.label, `${s.start}–${s.end}`, hueFor(s.label))).join("") +
+      mk("OFF", "", "off") +
+      `<button class="opt" data-v=""><span class="sw" style="background:var(--danger-soft);color:var(--danger);">✕</span><span class="t">Clear</span></button>`;
+    $("pickList").querySelectorAll(".opt").forEach((o) => {
+      o.onclick = () => {
+        const mk2 = monthKey();
+        S.sched[mk2] = S.sched[mk2] || {};
+        S.sched[mk2][empId] = S.sched[mk2][empId] || {};
+        if (o.dataset.v) S.sched[mk2][empId][d] = o.dataset.v; else delete S.sched[mk2][empId][d];
+        save(); $("pickOverlay").classList.remove("show"); renderSched();
+      };
+    });
+    $("pickOverlay").classList.add("show");
+  }
+  $("pickClose").onclick = () => $("pickOverlay").classList.remove("show");
+
+  // ---- Roster ----
+  function renderRoster() {
+    const list = $("empList");
+    $("rosterCount").textContent = `${S.roster.length} on roster`;
+    $("rosterHint").textContent = admin
+      ? "Admin mode: pay, hire dates, status, and coaching counts are visible. Italic names are workbook examples — replace them."
+      : "Names and roles are visible to everyone. Pay, hire dates, and coaching records show in Admin mode only.";
+    list.innerHTML = "";
+    for (const e of S.roster) {
+      const initials = e.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+      const coachN = S.coach.filter((c) => c.empId === e.id).length;
+      const div = document.createElement("div");
+      div.className = "emp";
+      div.innerHTML = `
+        <button class="head">
+          <span class="avatar">${esc(initials)}</span>
+          <span class="who"><span class="nm" ${e.example ? 'style="font-style:italic;"' : ""}>${esc(e.name)}</span><span class="rl">${esc(e.role)}</span></span>
+          <span class="pill ${e.status === "Active" ? "active" : "inactive"}">${esc(e.status)}</span>
+        </button>
+        <div class="detail">${admin ? `
+          <div class="row2">
+            <div><span class="lab">Pay rate</span><b>$${Number(e.rate || 0).toFixed(2)}/hr</b></div>
+            <div><span class="lab">Hired</span><b>${esc(e.hired || "—")}</b></div>
+          </div>
+          <div style="margin-top:8px;"><span class="lab">Coaching record</span>${coachN ? `<b>${coachN} entr${coachN === 1 ? "y" : "ies"}</b> — see Coaching tab` : "No entries"}</div>
+          <div class="actions">
+            <button class="btn small" data-act="toggle">${e.status === "Active" ? "Mark inactive" : "Mark active"}</button>
+            <button class="btn small danger" data-act="del">Remove</button>
+          </div>` : `<p style="margin:0;">🔒 Pay, hire date, and coaching are admin-only.</p>`}
+        </div>`;
+      div.querySelector(".head").onclick = () => div.classList.toggle("openx");
+      if (admin) {
+        div.querySelector('[data-act="toggle"]').onclick = () => { e.status = e.status === "Active" ? "Inactive" : "Active"; save(); renderAll(); };
+        div.querySelector('[data-act="del"]').onclick = () => {
+          if (!confirm(`Remove ${e.name} from the roster? Their schedule cells and coaching entries stay in exports until you clear them.`)) return;
+          S.roster = S.roster.filter((x) => x.id !== e.id); save(); renderAll();
+        };
+      }
+      list.appendChild(div);
+    }
+  }
+  $("npAdd").onclick = () => {
+    const name = $("npName").value.trim();
+    if (!name) return toast("Name is required");
+    S.roster.push({ id: uid(), name, role: $("npRole").value.trim() || "—", rate: parseFloat($("npRate").value) || 0, hired: $("npHired").value || "", status: "Active" });
+    ["npName", "npRole", "npRate", "npHired"].forEach((i) => ($(i).value = ""));
+    save(); renderAll(); toast(`${name} added`);
+  };
+
+  // ---- Shifts ----
+  function renderShifts() {
+    const el = $("shiftList");
+    el.innerHTML = "";
+    for (const s of S.shifts) {
+      const hu = hueFor(s.label);
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="lchip" style="background:var(--${hu});color:var(--${hu}-ink);font-size:12px;font-weight:800;border-radius:999px;padding:5px 12px;">${esc(s.label)}</span>
+          <span style="font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;">${esc(s.start)}–${esc(s.end)}</span>
+          <span style="color:var(--muted);font-size:13px;">${esc(s.notes)}</span>
+          ${admin ? `<button class="btn small danger" style="margin-left:auto;">Remove</button>` : ""}
+        </div>`;
+      if (admin) div.querySelector("button").onclick = () => {
+        if (!confirm(`Remove "${s.label}"? Existing cells keep the old label until reassigned.`)) return;
+        S.shifts = S.shifts.filter((x) => x.id !== s.id); save(); renderAll();
+      };
+      el.appendChild(div);
+    }
+  }
+  $("nsAdd").onclick = () => {
+    const label = $("nsLabel").value.trim();
+    if (!label) return toast("Label is required");
+    if (S.shifts.some((s) => s.label === label) || label === "OFF") return toast("That label already exists");
+    S.shifts.push({ id: uid(), label, start: $("nsStart").value || "—", end: $("nsEnd").value || "—", notes: $("nsNotes").value.trim(), hue: HUES[S.shifts.length % HUES.length] });
+    ["nsLabel", "nsStart", "nsEnd", "nsNotes"].forEach((i) => ($(i).value = ""));
+    save(); renderAll(); toast("Shift added");
+  };
+
+  // ---- Coaching ----
+  function renderCoach() {
+    const sel = $("ncEmp");
+    sel.innerHTML = S.roster.map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
+    const list = $("coachList");
+    list.innerHTML = S.coach.length ? "" : '<div class="card"><p style="margin:0;">No entries yet.</p></div>';
+    for (const c of [...S.coach].sort((a, b) => (b.date || "").localeCompare(a.date || ""))) {
+      const emp = S.roster.find((e) => e.id === c.empId);
+      const div = document.createElement("div");
+      div.className = "note";
+      div.innerHTML = `
+        <div class="meta">${esc(c.date || "—")} · <b>${esc(emp?.name ?? "?")}</b> · <span class="ntype ${c.type === "Corrective action" ? "corr" : ""}">${esc(c.type)}</span></div>
+        <div>${esc(c.what)}</div>
+        ${c.plan ? `<div style="color:var(--muted);margin-top:2px;">Plan: ${esc(c.plan)}</div>` : ""}`;
+      list.appendChild(div);
+    }
+  }
+  $("ncAdd").onclick = () => {
+    const what = $("ncWhat").value.trim();
+    if (!what) return toast("Describe what happened");
+    S.coach.push({ id: uid(), date: $("ncDate").value || new Date().toISOString().slice(0, 10), empId: $("ncEmp").value, type: $("ncType").value, what, plan: $("ncPlan").value.trim() });
+    $("ncWhat").value = ""; $("ncPlan").value = "";
+    save(); renderAll(); toast("Entry saved");
+  };
+
+  // ---- Employee view ----
+  function renderEmpView() {
+    $("evTitle").textContent = `Hand-out — ${monthName()} (days 1–${OPEN_DAYS})`;
+    const roster = activeRoster();
+    let h = "<thead><tr><th>Crew</th>";
+    for (let d = 1; d <= OPEN_DAYS; d++) h += `<th>${d}</th>`;
+    h += "</tr></thead><tbody>";
+    for (const e of roster) {
+      h += `<tr><td><b>${esc(e.name)}</b></td>`;
+      for (let d = 1; d <= OPEN_DAYS; d++) h += `<td>${esc(cellVal(e.id, d) || "·")}</td>`;
+      h += "</tr>";
+    }
+    $("evTable").innerHTML = h + "</tbody>";
+  }
+
+  // ---- Export / import ----
+  const dl = (name, text, type) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: type || "text/plain" }));
+    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  };
+  const csvCell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const csv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+
+  $("expJson").onclick = () => dl("kc-dynamic-scheduler-backup.json", JSON.stringify(S, null, 2), "application/json");
+  $("impJson").onclick = () => $("impFile").click();
+  $("impFile").onchange = (ev) => {
+    const f = ev.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!d.roster || !d.shifts) throw new Error("not a scheduler backup");
+        S = Object.assign(structuredClone(DEFAULTS), d); save(); renderAll(); toast("Imported");
+      } catch (e) { toast("Import failed: " + e.message); }
+    };
+    r.readAsText(f);
+    ev.target.value = "";
+  };
+  $("csvRoster").onclick = () => dl("roster.csv", csv([["Name", "Role / Zone", "Pay Rate ($/hr)", "Date of Hire", "Status"], ...S.roster.map((e) => [e.name, e.role, e.rate, e.hired, e.status])]), "text/csv");
+  $("csvShifts").onclick = () => dl("shift-menu.csv", csv([["Shift (appears in pull-down)", "Start", "End", "Notes"], ...S.shifts.map((s) => [s.label, s.start, s.end, s.notes])]), "text/csv");
+  $("csvCoach").onclick = () => {
+    if (!admin) return toast("Unlock Admin first");
+    dl("coaching-log.csv", csv([["Date", "Employee", "Type", "What happened", "Plan / follow-up"], ...S.coach.map((c) => [c.date, S.roster.find((e) => e.id === c.empId)?.name ?? "?", c.type, c.what, c.plan])]), "text/csv");
+  };
+  $("csvSched").onclick = () => {
+    const days = daysInMonth();
+    const head = ["Employee", ...Array.from({ length: days }, (_, i) => String(i + 1))];
+    const rows = activeRoster().map((e) => [e.name, ...Array.from({ length: days }, (_, i) => cellVal(e.id, i + 1))]);
+    dl(`schedule-${monthKey()}.csv`, csv([head, ...rows]), "text/csv");
+  };
+
+  // ---- boot ----
+  function renderAll() { renderSched(); renderRoster(); renderShifts(); renderCoach(); renderEmpView(); }
+  $("ncDate").value = new Date().toISOString().slice(0, 10);
+  syncAdmin();
+})();
+</script>
