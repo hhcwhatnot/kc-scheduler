@@ -2,59 +2,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KC Dynamic Scheduler</title>
 <style>
+  /* Committed light theme — white page, off-white blue-outlined schedule table. */
   :root {
-    --bg: #faf8f3;
+    color-scheme: light;
+    --bg: #ffffff;              /* page background: white */
     --card: #ffffff;
-    --ink: #26211a;
-    --muted: #837a6c;
-    --line: #e6e0d4;
-    --accent: #b45b04;
-    --accent-soft: #f7ead8;
-    --accent-ink: #7c3d00;
-    --locked-bg: #efece4;
-    --locked-ink: #a89f8f;
-    --today: #3d7a33;
-    --danger: #b3261e;
-    --danger-soft: #f9e5e3;
+    --ink: #1b2634;             /* dark slate text */
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --accent: #2563eb;          /* friendly blue */
+    --accent-soft: #eef4ff;
+    --accent-ink: #1d4ed8;
+    --table-bg: #f6f8fc;        /* off-white table fill */
+    --table-border: #2563eb;    /* blue outline around the table */
+    --locked-bg: #eef1f6;
+    --locked-ink: #9aa6b8;
+    --today: #16a34a;
+    --danger: #dc2626;
+    --danger-soft: #fdecec;
     --am: #dbeafe;   --am-ink: #1e50a0;
-    --mid: #fdeec0;  --mid-ink: #8a5300;
-    --pm: #e4e2fb;   --pm-ink: #4638a8;
-    --inv: #ddf2dc;  --inv-ink: #226b28;
-    --off: #eceae4;  --off-ink: #837a6c;
+    --mid: #fef3c7;  --mid-ink: #92600e;
+    --pm: #ede9fe;   --pm-ink: #5b21b6;
+    --inv: #dcfce7;  --inv-ink: #166534;
+    --off: #eef1f6;  --off-ink: #64748b;
     --radius: 12px;
-    --shadow: 0 1px 6px rgba(38,33,26,.08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #171410; --card: #211d16; --ink: #ece5d8; --muted: #99907f;
-      --line: #353026; --accent: #e0913a; --accent-soft: #3a2a12; --accent-ink: #f0b269;
-      --locked-bg: #1d1a14; --locked-ink: #6d6557; --today: #6cbf5e;
-      --danger: #ea8078; --danger-soft: #3c211e;
-      --am: #1d2c44; --am-ink: #8ab2f0; --mid: #3a2c12; --mid-ink: #eebf6a;
-      --pm: #272244; --pm-ink: #a79bf0; --inv: #1c2f1c; --inv-ink: #84cc8a;
-      --off: #26231c; --off-ink: #99907f;
-      --shadow: 0 1px 6px rgba(0,0,0,.4);
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #171410; --card: #211d16; --ink: #ece5d8; --muted: #99907f;
-    --line: #353026; --accent: #e0913a; --accent-soft: #3a2a12; --accent-ink: #f0b269;
-    --locked-bg: #1d1a14; --locked-ink: #6d6557; --today: #6cbf5e;
-    --danger: #ea8078; --danger-soft: #3c211e;
-    --am: #1d2c44; --am-ink: #8ab2f0; --mid: #3a2c12; --mid-ink: #eebf6a;
-    --pm: #272244; --pm-ink: #a79bf0; --inv: #1c2f1c; --inv-ink: #84cc8a;
-    --off: #26231c; --off-ink: #99907f;
-    --shadow: 0 1px 6px rgba(0,0,0,.4);
-  }
-  :root[data-theme="light"] {
-    --bg: #faf8f3; --card: #ffffff; --ink: #26211a; --muted: #837a6c;
-    --line: #e6e0d4; --accent: #b45b04; --accent-soft: #f7ead8; --accent-ink: #7c3d00;
-    --locked-bg: #efece4; --locked-ink: #a89f8f; --today: #3d7a33;
-    --danger: #b3261e; --danger-soft: #f9e5e3;
-    --am: #dbeafe; --am-ink: #1e50a0; --mid: #fdeec0; --mid-ink: #8a5300;
-    --pm: #e4e2fb; --pm-ink: #4638a8; --inv: #ddf2dc; --inv-ink: #226b28;
-    --off: #eceae4; --off-ink: #837a6c;
-    --shadow: 0 1px 6px rgba(38,33,26,.08);
+    --shadow: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -106,7 +78,7 @@
   .view.show { display: block; }
   .sectionhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
   .sectionhead h2 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
-  .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; line-height: 1.45; }
+  .hint { font-size: 12.5px; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid #dbe6ff; border-radius: 9px; padding: 9px 12px; margin-bottom: 12px; line-height: 1.5; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 13px; margin-bottom: 12px; }
   .card h3 { font-size: 14.5px; margin-bottom: 6px; }
   .card p { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
@@ -130,12 +102,16 @@
   .monthnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
   .monthnav h2 { font-size: 17px; font-weight: 800; text-align: center; flex: 1; }
 
-  .gridwrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-  table.sched { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .gridwrap {
+    overflow-x: auto; background: var(--table-bg);
+    border: 2px solid var(--table-border); border-radius: var(--radius);
+    box-shadow: 0 0 0 3px rgba(37,110,247,.10), var(--shadow);
+  }
+  table.sched { border-collapse: collapse; font-variant-numeric: tabular-nums; background: var(--table-bg); }
   .sched th, .sched td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
   .sched thead th {
-    font-size: 10.5px; color: var(--muted); font-weight: 700; text-align: center;
-    padding: 5px 2px 4px; min-width: 46px; background: var(--card);
+    font-size: 10.5px; color: var(--accent-ink); font-weight: 700; text-align: center;
+    padding: 6px 2px 5px; min-width: 46px; background: var(--accent-soft);
     position: sticky; top: 0;
   }
   .sched thead th .dow { display: block; font-weight: 600; letter-spacing: .04em; }
